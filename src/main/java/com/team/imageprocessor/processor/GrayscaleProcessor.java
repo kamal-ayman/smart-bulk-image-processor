@@ -1,18 +1,23 @@
 package com.team.imageprocessor.processor;
 
 import com.team.imageprocessor.model.ImageJob;
+import com.team.imageprocessor.service.ImageProcessingService;
+import com.team.imageprocessor.strategy.ImageProcessingStrategy;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class GrayscaleProcessor implements ItemProcessor<ImageJob, ImageJob> {
+
+    private final ImageProcessingService processingService;
+    private final ImageProcessingStrategy grayscaleStrategy;
 
     @Override
     public ImageJob process(ImageJob item) throws Exception {
@@ -22,20 +27,10 @@ public class GrayscaleProcessor implements ItemProcessor<ImageJob, ImageJob> {
                 return null;
             }
 
-            BufferedImage source = ImageIO.read(item.getInputPath().toFile());
-            if (source == null) {
-                log.error("Unable to decode image: {}", item.getFileName());
-                return null;
-            }
+            BufferedImage processed = processingService.process(item.getInputPath(), grayscaleStrategy);
+            item.setProcessedImage(processed);
             
-            BufferedImage grayImage = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
-            Graphics g = grayImage.getGraphics();
-            g.drawImage(source, 0, 0, null);
-            g.dispose();
-
-            item.setProcessedImage(grayImage);
-            log.info("Converted to grayscale: {}", item.getFileName());
-            
+            log.info("Processed with strategy: {}", grayscaleStrategy.getFilterName());
             return item;
         } catch (Exception e) {
             log.error("FAILED processing {}: {}", item.getFileName(), e.getMessage());
@@ -43,3 +38,4 @@ public class GrayscaleProcessor implements ItemProcessor<ImageJob, ImageJob> {
         }
     }
 }
+
