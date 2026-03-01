@@ -30,19 +30,21 @@ public class BatchConfig {
 
     @Bean
     public ItemReader<ImageJob> imageReader() {
-        File folder = new File("images/input");
+        // Use absolute path to avoid ambiguity
+        File folder = new File("/Volumes/kamal-mac/smart-bulk-image-processor/images/input");
         List<ImageJob> jobs = new ArrayList<>();
         
         if (!folder.exists()) {
             folder.mkdirs();
-            logger.info("Created input directory: images/input");
+            logger.info("Created input directory: " + folder.getAbsolutePath());
         }
 
         File[] files = folder.listFiles();
         if (files != null) {
             for (File file : files) {
                 if (file.isFile() && isImageFile(file.getName())) {
-                    jobs.add(new ImageJob(file.getName(), file.getAbsolutePath(), "images/output/" + file.getName(), null));
+                    String outputDirPath = "/Volumes/kamal-mac/smart-bulk-image-processor/images/output/";
+                    jobs.add(new ImageJob(file.getName(), file.getAbsolutePath(), outputDirPath + file.getName(), null));
                 }
             }
         }
@@ -58,13 +60,15 @@ public class BatchConfig {
                     File output = new File(item.getOutputPath());
                     output.getParentFile().mkdirs();
                     
-                    // Standard Java ImageIO write
-                    boolean success = ImageIO.write(item.getProcessedImage(), "jpg", output);
-                    
-                    if (success) {
-                        logger.info("SUCCESS: Saved processed image to -> {}", output.getPath());
-                    } else {
-                        logger.error("FAILED: Could not save image -> {}", item.getFileName());
+                    try {
+                        boolean success = ImageIO.write(item.getProcessedImage(), "jpg", output);
+                        if (success) {
+                            logger.info("SUCCESS: Saved processed image to -> {}", output.getPath());
+                        } else {
+                            logger.error("FAILED: ImageIO could not write -> {}", item.getFileName());
+                        }
+                    } catch (Exception e) {
+                        logger.error("ERROR writing image {}: {}", item.getFileName(), e.getMessage());
                     }
                 }
             }
@@ -74,7 +78,7 @@ public class BatchConfig {
     @Bean
     public TaskExecutor taskExecutor() {
         SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor();
-        executor.setConcurrencyLimit(4); // Multi-threading: 4 parallel threads
+        executor.setConcurrencyLimit(4);
         return executor;
     }
 
@@ -83,11 +87,11 @@ public class BatchConfig {
                          ItemReader<ImageJob> reader, GrayscaleProcessor processor, ItemWriter<ImageJob> writer,
                          TaskExecutor taskExecutor) {
         return new StepBuilder("imageStep", jobRepository)
-                .<ImageJob, ImageJob>chunk(5, transactionManager) // Process in chunks of 5
+                .<ImageJob, ImageJob>chunk(2, transactionManager) 
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)
-                .taskExecutor(taskExecutor) // Parallelism enabled here
+                .taskExecutor(taskExecutor)
                 .build();
     }
 
