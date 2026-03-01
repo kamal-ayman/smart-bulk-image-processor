@@ -14,7 +14,7 @@ import java.nio.file.Files;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class GrayscaleProcessor implements ItemProcessor<ImageJob, ImageJob> {
+public class ImageJobProcessor implements ItemProcessor<ImageJob, ImageJob> {
 
     private final ImageProcessingService processingService;
     private final ImageProcessingStrategy grayscaleStrategy;
@@ -22,20 +22,24 @@ public class GrayscaleProcessor implements ItemProcessor<ImageJob, ImageJob> {
     @Override
     public ImageJob process(ImageJob item) throws Exception {
         try {
+            log.info("Processing file: {}", item.getFileName());
+            
             if (!Files.exists(item.getInputPath())) {
-                log.error("Input file not found: {}", item.getInputPath());
+                log.error("Input file not found at: {}", item.getInputPath().toAbsolutePath());
                 return null;
             }
 
             BufferedImage processed = processingService.process(item.getInputPath(), grayscaleStrategy);
             item.setProcessedImage(processed);
             
-            log.info("Processed with strategy: {}", grayscaleStrategy.getFilterName());
+            log.info("Successfully processed {} with strategy: {}", item.getFileName(), grayscaleStrategy.getFilterName());
             return item;
         } catch (Exception e) {
-            log.error("FAILED processing {}: {}", item.getFileName(), e.getMessage());
-            throw e;
+            log.error("CRITICAL ERROR processing {}: {}", item.getFileName(), e.getMessage(), e);
+            throw e; 
         }
     }
 }
+
+
 
