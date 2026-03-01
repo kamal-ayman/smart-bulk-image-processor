@@ -25,16 +25,11 @@ public class ImageFilterService {
         }
 
         BufferedImage result;
-        switch (filterType.toLowerCase()) {
-            case "grayscale":
-                result = applyGrayscale(image);
-                break;
-            case "resize":
-                result = applyResize(image, 800, 600); // Sample resize
-                break;
-            default:
-                result = image;
-        }
+        result = switch (filterType.toLowerCase()) {
+            case "grayscale" -> applyGrayscale(image);
+            case "resize" -> applyResize(image, 800, 600);
+            default -> image;
+        }; // Sample resize
 
         File outputFile = Path.of(outputDir, "processed_" + inputImage.getName()).toFile();
         ImageIO.write(result, "jpg", outputFile);
