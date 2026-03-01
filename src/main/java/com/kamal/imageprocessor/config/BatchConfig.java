@@ -26,7 +26,7 @@ public class BatchConfig {
 
     @Bean
     public ItemReader<ImageJob> imageReader() {
-        // قراءة الصور من فولدر محدد (يمكن تعديله)
+        // Read images from a specific folder (configurable)
         File folder = new File("images/input");
         List<ImageJob> jobs = new ArrayList<>();
         if (folder.exists() && folder.isDirectory()) {
@@ -54,9 +54,9 @@ public class BatchConfig {
 
     @Bean
     public TaskExecutor taskExecutor() {
-        // Multi-threading: تفعيل المعالجة المتوازية
+        // Multi-threading: Enable parallel processing
         SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor();
-        executor.setConcurrencyLimit(4); // عدد الـ Threads
+        executor.setConcurrencyLimit(4); // Number of Threads
         return executor;
     }
 
@@ -65,11 +65,11 @@ public class BatchConfig {
                          ItemReader<ImageJob> reader, GrayscaleProcessor processor, ItemWriter<ImageJob> writer,
                          TaskExecutor taskExecutor) {
         return new StepBuilder("imageStep", jobRepository)
-                .<ImageJob, ImageJob>chunk(10, transactionManager) // كل Batch فيها 10 صور
+                .<ImageJob, ImageJob>chunk(10, transactionManager) // Each Batch contains 10 images
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)
-                .taskExecutor(taskExecutor) // تشغيل الـ Step بـ Multi-threading
+                .taskExecutor(taskExecutor) // Run Step with Multi-threading
                 .build();
     }
 

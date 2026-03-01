@@ -14,10 +14,10 @@ public class GrayscaleProcessor implements ItemProcessor<ImageJob, ImageJob> {
 
     @Override
     public ImageJob process(ImageJob item) throws Exception {
-        // 1. قراءة الصورة من المسار
+        // 1. Read image from path
         BufferedImage image = ImageIO.read(new File(item.getInputPath()));
         
-        // 2. تطبيق الـ Grayscale Logic (Image Processing)
+        // 2. Apply Grayscale Logic (Image Processing)
         int width = image.getWidth();
         int height = image.getHeight();
 
@@ -34,7 +34,7 @@ public class GrayscaleProcessor implements ItemProcessor<ImageJob, ImageJob> {
             }
         }
 
-        // 3. تحديث الـ Job بالصورة المعالجة
+        // 3. Update Job with processed image
         item.setProcessedImage(grayImage);
         return item;
     }
