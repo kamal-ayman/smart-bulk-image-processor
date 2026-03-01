@@ -1,4 +1,4 @@
-package com.kamal.imageprocessor.model;
+package com.team.imageprocessor.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

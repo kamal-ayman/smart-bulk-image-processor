@@ -8,7 +8,7 @@
         <version>3.2.2</version>
         <relativePath/>
     </parent>
-    <groupId>com.kamal</groupId>
+    <groupId>com.team</groupId>
     <artifactId>smart-bulk-image-processor</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>smart-bulk-image-processor</name>

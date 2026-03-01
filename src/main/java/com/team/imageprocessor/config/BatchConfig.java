@@ -1,7 +1,7 @@
-package com.kamal.imageprocessor.config;
+package com.team.imageprocessor.config;
 
-import com.kamal.imageprocessor.model.ImageJob;
-import com.kamal.imageprocessor.processor.GrayscaleProcessor;
+import com.team.imageprocessor.model.ImageJob;
+import com.team.imageprocessor.processor.GrayscaleProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;

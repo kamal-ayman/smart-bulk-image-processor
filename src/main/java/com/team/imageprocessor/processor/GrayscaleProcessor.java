@@ -1,6 +1,6 @@
-package com.kamal.imageprocessor.processor;
+package com.team.imageprocessor.processor;
 
-import com.kamal.imageprocessor.model.ImageJob;
+import com.team.imageprocessor.model.ImageJob;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
 
