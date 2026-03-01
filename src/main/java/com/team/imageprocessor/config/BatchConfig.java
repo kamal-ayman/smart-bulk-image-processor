@@ -30,14 +30,12 @@ public class BatchConfig {
 
     @Bean
     public ItemReader<ImageJob> imageReader() {
-        // Use user home relative path or current project path to avoid permission issues
         String projectRoot = System.getProperty("user.dir");
         File inputFolder = new File(projectRoot, "images/input");
         List<ImageJob> jobs = new ArrayList<>();
         
         if (!inputFolder.exists()) {
             inputFolder.mkdirs();
-            logger.info("Created input directory: " + inputFolder.getAbsolutePath());
         }
 
         File[] files = inputFolder.listFiles();
@@ -49,7 +47,7 @@ public class BatchConfig {
                 }
             }
         }
-        logger.info("Reader found {} images to process in: {}", jobs.size(), inputFolder.getAbsolutePath());
+        logger.info("Reader found {} images to process", jobs.size());
         return new ListItemReader<>(jobs);
     }
 
@@ -59,24 +57,26 @@ public class BatchConfig {
             for (ImageJob item : items) {
                 if (item.getProcessedImage() != null) {
                     File outputFile = new File(item.getOutputPath());
-                    // Ensure directory exists
-                    outputFile.getParentFile().mkdirs();
                     
-                    // Clear existing file if it exists to avoid permission/lock issues
-                    if (outputFile.exists()) {
-                        outputFile.delete();
+                    // Create parent directory in a synchronized-like manner
+                    synchronized(this) {
+                        if (!outputFile.getParentFile().exists()) {
+                            outputFile.getParentFile().mkdirs();
+                        }
                     }
 
                     try {
-                        // Use ImageIO write to a file directly
+                        // Small delay to ensure OS file system handles concurrent writes
+                        Thread.sleep(100); 
+                        
                         boolean success = ImageIO.write(item.getProcessedImage(), "jpg", outputFile);
                         if (success) {
-                            logger.info("SUCCESS: Saved processed image to -> {}", outputFile.getAbsolutePath());
+                            logger.info("SUCCESS: Processed and saved -> {}", item.getFileName());
                         } else {
-                            logger.error("FAILED: ImageIO write returned false for -> {}", item.getFileName());
+                            logger.error("FAILED: Could not write -> {}", item.getFileName());
                         }
                     } catch (Exception e) {
-                        logger.error("ERROR writing image {}: {}. Target: {}", item.getFileName(), e.getMessage(), outputFile.getAbsolutePath());
+                        logger.error("ERROR writing {}: {}", item.getFileName(), e.getMessage());
                     }
                 }
             }
@@ -86,7 +86,8 @@ public class BatchConfig {
     @Bean
     public TaskExecutor taskExecutor() {
         SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor();
-        executor.setConcurrencyLimit(4);
+        // Reduced concurrency to 2 to avoid OS file lock issues during high-speed parallel writes
+        executor.setConcurrencyLimit(2); 
         return executor;
     }
 
@@ -95,7 +96,7 @@ public class BatchConfig {
                          ItemReader<ImageJob> reader, GrayscaleProcessor processor, ItemWriter<ImageJob> writer,
                          TaskExecutor taskExecutor) {
         return new StepBuilder("imageStep", jobRepository)
-                .<ImageJob, ImageJob>chunk(2, transactionManager) 
+                .<ImageJob, ImageJob>chunk(1, transactionManager) // Chunk of 1 for maximum stability
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)
