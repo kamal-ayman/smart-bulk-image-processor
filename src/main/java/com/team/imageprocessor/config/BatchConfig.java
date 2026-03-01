@@ -30,25 +30,26 @@ public class BatchConfig {
 
     @Bean
     public ItemReader<ImageJob> imageReader() {
-        // Use absolute path to avoid ambiguity
-        File folder = new File("/Volumes/kamal-mac/smart-bulk-image-processor/images/input");
+        // Use user home relative path or current project path to avoid permission issues
+        String projectRoot = System.getProperty("user.dir");
+        File inputFolder = new File(projectRoot, "images/input");
         List<ImageJob> jobs = new ArrayList<>();
         
-        if (!folder.exists()) {
-            folder.mkdirs();
-            logger.info("Created input directory: " + folder.getAbsolutePath());
+        if (!inputFolder.exists()) {
+            inputFolder.mkdirs();
+            logger.info("Created input directory: " + inputFolder.getAbsolutePath());
         }
 
-        File[] files = folder.listFiles();
+        File[] files = inputFolder.listFiles();
         if (files != null) {
             for (File file : files) {
                 if (file.isFile() && isImageFile(file.getName())) {
-                    String outputDirPath = "/Volumes/kamal-mac/smart-bulk-image-processor/images/output/";
+                    String outputDirPath = projectRoot + File.separator + "images" + File.separator + "output" + File.separator;
                     jobs.add(new ImageJob(file.getName(), file.getAbsolutePath(), outputDirPath + file.getName(), null));
                 }
             }
         }
-        logger.info("Reader found {} images to process", jobs.size());
+        logger.info("Reader found {} images to process in: {}", jobs.size(), inputFolder.getAbsolutePath());
         return new ListItemReader<>(jobs);
     }
 
@@ -57,18 +58,25 @@ public class BatchConfig {
         return items -> {
             for (ImageJob item : items) {
                 if (item.getProcessedImage() != null) {
-                    File output = new File(item.getOutputPath());
-                    output.getParentFile().mkdirs();
+                    File outputFile = new File(item.getOutputPath());
+                    // Ensure directory exists
+                    outputFile.getParentFile().mkdirs();
                     
+                    // Clear existing file if it exists to avoid permission/lock issues
+                    if (outputFile.exists()) {
+                        outputFile.delete();
+                    }
+
                     try {
-                        boolean success = ImageIO.write(item.getProcessedImage(), "jpg", output);
+                        // Use ImageIO write to a file directly
+                        boolean success = ImageIO.write(item.getProcessedImage(), "jpg", outputFile);
                         if (success) {
-                            logger.info("SUCCESS: Saved processed image to -> {}", output.getPath());
+                            logger.info("SUCCESS: Saved processed image to -> {}", outputFile.getAbsolutePath());
                         } else {
-                            logger.error("FAILED: ImageIO could not write -> {}", item.getFileName());
+                            logger.error("FAILED: ImageIO write returned false for -> {}", item.getFileName());
                         }
                     } catch (Exception e) {
-                        logger.error("ERROR writing image {}: {}", item.getFileName(), e.getMessage());
+                        logger.error("ERROR writing image {}: {}. Target: {}", item.getFileName(), e.getMessage(), outputFile.getAbsolutePath());
                     }
                 }
             }
